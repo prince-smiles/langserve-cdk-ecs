@@ -33,6 +33,8 @@ If you want to quickly set them in your shell from the file, you can run
 export $(cat .env | xargs)
 ```
 
+Also you can even copy the values from the files and paste in the shell that also works.
+
 6. Now we setup the poetry environment as follows and use the Poetry Python as VS Codes Interpreter so that we can debug code properly
 ```shell
 cd chatbot
@@ -72,7 +74,7 @@ To run it
 ```shell
 docker-compose up --build
 ```
-Earlier in the `.env` file we mentioned `AWS_PROFILE`. So even if we copy all the credentials, as this is set as Environment variable inside docker,
+Earlier in the `.env.local` file we mentioned `AWS_PROFILE`. So even if we copy all the credentials, as this is set as Environment variable inside docker,
 so if we use any AWS Api call using `boto3`, it will know to selcect credentials and region for which profile.
 10. Setup CDK [CDK AWS Documentation](https://docs.aws.amazon.com/cdk/v2/guide/cli.html), in the root run this
 ```shell
@@ -85,14 +87,25 @@ cdk init app --language python --generate-only
 pip install --upgrade -r requirements.txt 
 ```
 12. Change the code in CDK. It will create some file and class as `cdk_stack.py` and `CdkStack`. You can change them to whatever values. Note they are imported in various places like `cdk/app.py`, so change there also like a normal Python Project.
-13. The AWS Profile mentioned `.env` file is only for Docker. For CDK Deployment and non docker local testing you need to set it explicitly
+13. The AWS Profile mentioned `.env.local` file is only for Docker. For CDK Deployment and non docker local testing you need to set it explicitly
 ```shell
-export AWS_PROFILE=your profile
+export AWS_PROFILE=your_profile
 ```
 Make sure its properly set, run 
 ```shell
-cdk synth --context stage=dev
+cdk synth --context stage=STAGE --context subdomain=SUBDOMAIN_PREFIX --context vpc_stack=SHARED_STACK --context domain=DOMAIN
 ```
+For example if teh stage is `prod`, `SUBDOMAIN_PREFIX` is `chat`, `SHARED_STACK` is `SharedVpcStack` (deployed earlier) and `DOMAIN` is `example.com` then
+```shell
+cdk synth --context stage=prod --context subdomain=chat --context vpc_stack=SharedVpcStack --context domain=example.com
+```
+Assuming there is a hosted zone `example.com` in your AWS account and also you have a certificage `*.example.com` the service will be deployed at https://chat-dev.exmaple.com.
+
+Note the ceritificate might be already allocated in a different region, so set the appropriate value in `cdk.cdk.langserve_stack.py:CERT_REGION` as
+```
+CERT_REGION = "us-east-1"
+```
+
 it should print the account id and the default region associated with the profile.
 14. Set the environment variables needed for deployment, run this in root
 ```shell
@@ -102,5 +115,5 @@ export $(cat .env | xargs)
 
 15. Deploy: Finally you can deploy as 
 ```shell
-cdk deploy --context stage=dev  
+cdk deploy --context stage=STAGE --context subdomain=SUBDOMAIN_PREFIX --context vpc_stack=SHARED_STACK --context domain=DOMAIN
 ```

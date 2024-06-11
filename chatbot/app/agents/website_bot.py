@@ -33,8 +33,8 @@ agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
 
-print(os.environ["MONGO_DATABASE"])
-print(os.environ["MONGO_CONNECTION_STRING"])
+# print(os.environ["MONGO_DATABASE"])
+# print(os.environ["MONGO_CONNECTION_STRING"])
 
 website_chat_agent = RunnableWithMessageHistory(
     agent_executor,

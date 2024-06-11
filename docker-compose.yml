@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build: chatbot
+    ports:
+      - '8080:8080'
+    volumes:
+      - aws-config:/root/.aws
+    env_file:
+      - .env
+      - .env.local
+volumes:
+  aws-config:
+    external: true
