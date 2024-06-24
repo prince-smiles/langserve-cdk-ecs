@@ -8,11 +8,10 @@ from ..tools.rag import get_treatment_price
 import os
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from langchain.llms import OpenAI
-from langchain.vectorstores import FAISS
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.chains import RetrievalQA
 from langchain.schema import Document
+import numpy as np
+import faiss
 
 uri = os.environ['MONGO_CONNECTION_STRING']
 client = MongoClient(uri, server_api=ServerApi('1'))
@@ -24,28 +23,22 @@ except Exception as e:
 
 db = client[os.environ['MONGO_DATABASE']]
 embeddings_collection = db['scrapped_data']
+index = faiss.IndexFlatL2(d)
 
-def vector_search(query, top_k=5):
+def vector_search_faiss(query, top_k=5):
     embedding = OpenAIEmbeddings().embed_documents([query])[0]
-    search_result = embeddings_collection.aggregate([
-        {
-            "$search": {
-                "knnBeta": {
-                    "vector": embedding,
-                    "path": "embedding",
-                    "k": top_k
-                }
-            }
-        }
-    ])
-    documents = []
-    for result in search_result:
-        doc = Document(page_content=result["page_content"], metadata={"url": result["url"]})
-        documents.append(doc)
-    return documents
+    embedding = np.array([embedding])  # Convert to numpy array
+    distances, indices = index.search(embedding, top_k)
+    
+    results = []
+    for idx in indices[0]:
+        result = embeddings_collection.find_one({"embedding": document_embeddings[idx].tolist()})
+        results.append(Document(page_content=result["page_content"], metadata={"url": result["url"]}))
+    return results
+
 
 def qa_chain_tool(query: str) -> str:
-    results = vector_search(query)
+    results = vector_search_faiss(query)
     if results:
         source_doc = results[0]
         text = source_doc.page_content
