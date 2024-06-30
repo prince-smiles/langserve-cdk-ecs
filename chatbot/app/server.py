@@ -3,7 +3,7 @@ from langserve import add_routes
 from langserve.pydantic_v1 import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any
-from .agents.website_bot import website_chat_agent
+from .agents.website_bot import website_chat_agent, agent_executor
 
 
 app = FastAPI()

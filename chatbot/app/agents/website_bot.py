@@ -8,13 +8,12 @@ from ..tools.rag import get_treatment_price
 import os
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from langchain.llms import OpenAI
-from langchain.vectorstores import FAISS
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.chains import RetrievalQA
 from langchain.schema import Document
 
+
 uri = os.environ['MONGO_CONNECTION_STRING']
+
 client = MongoClient(uri, server_api=ServerApi('1'))
 try:
     client.admin.command('ping')
@@ -23,28 +22,51 @@ except Exception as e:
     print(e)
 
 db = client[os.environ['MONGO_DATABASE']]
-embeddings_collection = db['scrapped_data']
+embeddings_collection = db['embeddings']
+
 
 def vector_search(query, top_k=5):
-    embedding = OpenAIEmbeddings().embed_documents([query])[0]
-    search_result = embeddings_collection.aggregate([
-        {
-            "$search": {
-                "knnBeta": {
-                    "vector": embedding,
-                    "path": "embedding",
-                    "k": top_k
+    print('Inside VQ:',query)
+    query_embedding = OpenAIEmbeddings().embed_query(query)
+    # print('Embedding:', embedding)
+    pipeline = [
+    {
+        "$addFields": {
+            "distance": {
+                "$sqrt": {
+                    "$sum": {
+                        "$map": {
+                            "input": {"$range": [0, {"$size": "$embedding"}]},
+                            "in": {
+                                "$pow": [
+                                    {"$subtract": [
+                                        {"$toDouble": {"$arrayElemAt": ["$embedding", "$$this"]}},
+                                        {"$toDouble": {"$arrayElemAt": [query_embedding, "$$this"]}}
+                                    ]},
+                                    2
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         }
-    ])
+    },
+    {"$sort": {"distance": 1}},
+    {"$limit": 5}
+    ]
+
+    results = list(embeddings_collection.aggregate(pipeline))
+
     documents = []
-    for result in search_result:
+    for result in results:
+        # print("SS:", result)
         doc = Document(page_content=result["page_content"], metadata={"url": result["url"]})
         documents.append(doc)
     return documents
 
 def qa_chain_tool(query: str) -> str:
+    print(query)
     results = vector_search(query)
     if results:
         source_doc = results[0]

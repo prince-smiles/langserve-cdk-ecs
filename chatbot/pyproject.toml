@@ -2,24 +2,18 @@
 name = "chatbot"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["prince-smiles <prince@doc32.in>"]
 readme = "README.md"
-packages = [
-    { include = "app" },
-]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-uvicorn = "^0.23.2"
-langserve = {extras = ["server"], version = ">=0.0.30"}
-pydantic = "<2"
-langchain = "^0.2.3"
-langchain-openai = "^0.1.8"
+python = "^3.10"
+langchain = "^0.2.6"
+langchain-openai = "^0.1.11"
 langchain-mongodb = "^0.1.6"
+pymongo = "^4.8.0"
+langchain-core = "^0.2.10"
+pydantic = "^2.7.4"
 
-
-[tool.poetry.group.dev.dependencies]
-langchain-cli = ">=0.0.15"
 
 [build-system]
 requires = ["poetry-core"]
